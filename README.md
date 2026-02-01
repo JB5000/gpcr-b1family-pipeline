@@ -52,7 +52,7 @@ Produces tab-separated value (TSV) files with the following columns:
 | `chr_accver` | Chromosome sequence accession version (e.g., NC_042296.1) |
 | `chr_start` | Genomic start position (base pairs) |
 | `chr_stop` | Genomic stop position (base pairs) |
-| `protein_sequence` | Full amino acid sequence |
+| `protein_sequence` | Full amino acid sequence with custom header (see below) |
 | `description` | Original PHMMER description |
 
 ## 📋 Input Requirements
@@ -72,6 +72,87 @@ NP_001098689.1       -            794 FAMILYB1    ...  calcitonin receptor precu
 NP_001098689.1       -            794 FAMILYB1    ...  calcitonin receptor precursor [Takifugu rubripes]
 XP_029700367.1       -            794 FAMILYB1    ...  calcitonin receptor isoform X1 [Takifugu rubripes]
 ```
+
+### 🧬 Sequence Header Format (Beginner Friendly)
+
+Each output sequence is written in a **single field** with a custom header and a space before the sequence:
+
+```
+>Tru NP_001098689.1 MKSAGYSCILWLLLMMVTDTESLSEPSLSPGQ...
+```
+
+**How the header is built (automatic):**
+- `>` symbol first
+- **Species abbreviation** derived from the organism in square brackets `[]`
+  - Example organism: `[Takifugu rubripes]`
+  - Abbreviation rule: **first letter of genus (uppercase)** + **first two letters of species (lowercase)**
+  - Result: `Tru`
+- Then the **accession number**
+- Then a **single space**
+- Then the **protein sequence**
+
+If the organism name is missing or invalid, the abbreviation becomes `NA`.
+
+---
+
+## 🌐 How to Obtain the PHMMER Input (Galaxy.eu) — Step by Step
+
+This pipeline expects a **PHMMER/HMMER output file** with per-domain hits. The easiest way to generate it is with **Galaxy.eu**:
+
+### ✅ Step 1 — Open HMMER Search Tool
+
+Use this direct link:
+https://usegalaxy.eu/?tool_id=toolshed.g2.bx.psu.edu%2Frepos%2Fiuc%2Fhmmer_hmmsearch%2Fhmmer_hmmsearch%2F3.4%2Bgalaxy0&version=latest
+
+Or on Galaxy.eu:
+1. Go to https://usegalaxy.eu/
+2. Search for **hmmsearch** in the tool search bar
+3. Open the tool named **HMMER hmmsearch**
+
+### ✅ Step 2 — Upload Your Data
+
+You need two inputs:
+1. **Reference proteome** (best: curated RefSeq animal species proteome)
+2. **HMM model** (your GPCR B1 family HMM built previously)
+
+Upload both files to Galaxy:
+- Click **Upload Data**
+- Select the proteome FASTA and your HMM file
+
+### ✅ Step 3 — Configure hmmsearch
+
+Set inputs as follows:
+- **HMM file**: your GPCR B1 family HMM
+- **Sequence database**: your proteome FASTA
+
+### ✅ Step 4 — Choose Output Type
+
+In **Output options**, select:
+- ✅ **Per-domain hits** (this is important!)
+
+This output contains the fields used by the pipeline.
+
+### ✅ Step 5 — Run and Download
+
+1. Click **Run Tool**
+2. When finished, download the **per-domain hits** file
+
+Rename it (example):
+```
+Galaxy14_PHMMER.txt
+```
+
+### ✅ Step 6 — Move File to the Pipeline Folder
+
+Place the downloaded file in the same folder as `master_pipeline_gpcr.py`:
+
+```
+gpcr-b1family-pipeline/
+├── master_pipeline_gpcr.py
+├── Galaxy14_PHMMER.txt   ← place the file here
+```
+
+Now you can run the pipeline.
 
 ## 🚀 Installation & Usage
 

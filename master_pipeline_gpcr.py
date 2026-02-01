@@ -4,6 +4,7 @@ from collections import defaultdict
 from datetime import timedelta
 import os
 import io
+import re
 
 OUTPUT_DIR = "FINAL_OUTPUT"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -57,6 +58,32 @@ def get_protein_sequence(acc):
         return str(seq.seq)
     except:
         return "NA"
+
+
+def get_species_abbrev(description_line):
+    try:
+        match = re.findall(r"\[([^\]]+)\]", description_line)
+        if not match:
+            return "NA"
+
+        species = match[-1].strip()
+        parts = [p for p in species.split() if p]
+        if len(parts) < 2:
+            return "NA"
+
+        first = parts[0]
+        last = parts[-1]
+        abbrev = f"{first[0].upper()}{last[:2].lower()}"
+        return abbrev
+    except:
+        return "NA"
+
+
+def format_sequence_with_header(acc, sequence, description_line):
+    abbrev = get_species_abbrev(description_line)
+    if sequence == "NA":
+        return f">{abbrev} {acc} NA"
+    return f">{abbrev} {acc} {sequence}"
 
 
 def get_gene_summary(gene_id):
@@ -177,6 +204,11 @@ for r in records:
     acc = r["accession"]
     r["gene_id"] = gene_cache.get(acc)
     r["sequence"] = seq_cache.get(acc)
+    r["sequence_formatted"] = format_sequence_with_header(
+        acc,
+        r["sequence"],
+        r["line"]
+    )
     info = gene_info_cache.get(r["gene_id"], {})
     r["exon_count"] = info.get("exon_count") or "NA"
     r["chromosome"] = info.get("chromosome") or "NA"
@@ -224,7 +256,7 @@ for r in filtered:
             family_files[fam].write(
                 f"{r['accession']}\t{r['tlen']}\t{r['gene_id']}\t{r['exon_count']}\t"
                 f"{r['chromosome']}\t{r['chr_accver']}\t{r['chr_start']}\t"
-                f"{r['chr_stop']}\t{r['sequence']}\t{r['line']}\n"
+                f"{r['chr_stop']}\t{r['sequence_formatted']}\t{r['line']}\n"
             )
             assigned = True
             break
@@ -233,7 +265,7 @@ for r in filtered:
         family_files["UNCLASSIFIED"].write(
             f"{r['accession']}\t{r['tlen']}\t{r['gene_id']}\t{r['exon_count']}\t"
             f"{r['chromosome']}\t{r['chr_accver']}\t{r['chr_start']}\t"
-            f"{r['chr_stop']}\t{r['sequence']}\t{r['line']}\n"
+            f"{r['chr_stop']}\t{r['sequence_formatted']}\t{r['line']}\n"
         )
 
 for fh in family_files.values():
