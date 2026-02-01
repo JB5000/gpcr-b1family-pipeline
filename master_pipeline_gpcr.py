@@ -59,6 +59,37 @@ def get_protein_sequence(acc):
         return "NA"
 
 
+def get_gene_summary(gene_id):
+    try:
+        h = Entrez.esummary(db="gene", id=gene_id, retmode="xml")
+        summary = Entrez.read(h)
+        h.close()
+
+        docset = summary.get("DocumentSummarySet", {})
+        docs = docset.get("DocumentSummary", [])
+        if not docs:
+            return {}
+
+        doc = docs[0]
+        genomic = (doc.get("GenomicInfo") or [{}])[0]
+
+        exon_count = genomic.get("ExonCount")
+        chromosome = doc.get("Chromosome") or genomic.get("ChrLoc")
+        chr_accver = genomic.get("ChrAccVer")
+        chr_start = genomic.get("ChrStart")
+        chr_stop = genomic.get("ChrStop")
+
+        return {
+            "exon_count": exon_count,
+            "chromosome": chromosome,
+            "chr_accver": chr_accver,
+            "chr_start": chr_start,
+            "chr_stop": chr_stop,
+        }
+    except:
+        return {}
+
+
 # ================= PIPELINE =================
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -90,6 +121,7 @@ total = len(unique_accessions)
 
 gene_cache = {}
 seq_cache = {}
+gene_info_cache = {}
 
 start = time.time()
 next_progress = PROGRESS_STEP
@@ -115,11 +147,42 @@ for i, acc in enumerate(unique_accessions, start=1):
 
     time.sleep(SLEEP)
 
+# ---------- FETCH GENE SUMMARY (EXON + CHR POSITION) ----------
+unique_gene_ids = sorted({gid for gid in gene_cache.values() if gid})
+gene_total = len(unique_gene_ids)
+start = time.time()
+next_progress = PROGRESS_STEP
+
+print(f"\nTotal unique GeneIDs: {gene_total}\n")
+
+for i, gid in enumerate(unique_gene_ids, start=1):
+    gene_info_cache[gid] = get_gene_summary(gid)
+
+    percent = (i / gene_total) * 100 if gene_total else 100
+    elapsed = time.time() - start
+
+    if percent >= next_progress or i == gene_total:
+        eta = (elapsed / i) * (gene_total - i) if i else 0
+        print(
+            f"[Gene {int(percent)}%] {i}/{gene_total} | "
+            f"elapsed: {timedelta(seconds=int(elapsed))} | "
+            f"ETA: {timedelta(seconds=int(eta))}"
+        )
+        next_progress += PROGRESS_STEP
+
+    time.sleep(SLEEP)
+
 # ---------- ATTACH DATA ----------
 for r in records:
     acc = r["accession"]
     r["gene_id"] = gene_cache.get(acc)
     r["sequence"] = seq_cache.get(acc)
+    info = gene_info_cache.get(r["gene_id"], {})
+    r["exon_count"] = info.get("exon_count") or "NA"
+    r["chromosome"] = info.get("chromosome") or "NA"
+    r["chr_accver"] = info.get("chr_accver") or "NA"
+    r["chr_start"] = info.get("chr_start") or "NA"
+    r["chr_stop"] = info.get("chr_stop") or "NA"
 
 # ---------- GROUP BY GENEID ----------
 by_gene = defaultdict(list)
@@ -145,7 +208,10 @@ family_files["UNCLASSIFIED"] = open(
     f"{OUTPUT_DIR}/UNCLASSIFIED.tsv", "w"
 )
 
-header = "accession\ttlen\tGeneID\tprotein_sequence\tdescription\n"
+header = (
+    "accession\ttlen\tGeneID\texon_count\tchromosome\tchr_accver\t"
+    "chr_start\tchr_stop\tprotein_sequence\tdescription\n"
+)
 for fh in family_files.values():
     fh.write(header)
 
@@ -156,14 +222,18 @@ for r in filtered:
     for fam, keys in FAMILIES.items():
         if any(k in line_lower for k in keys):
             family_files[fam].write(
-                f"{r['accession']}\t{r['tlen']}\t{r['gene_id']}\t{r['sequence']}\t{r['line']}\n"
+                f"{r['accession']}\t{r['tlen']}\t{r['gene_id']}\t{r['exon_count']}\t"
+                f"{r['chromosome']}\t{r['chr_accver']}\t{r['chr_start']}\t"
+                f"{r['chr_stop']}\t{r['sequence']}\t{r['line']}\n"
             )
             assigned = True
             break
 
     if not assigned:
         family_files["UNCLASSIFIED"].write(
-            f"{r['accession']}\t{r['tlen']}\t{r['gene_id']}\t{r['sequence']}\t{r['line']}\n"
+            f"{r['accession']}\t{r['tlen']}\t{r['gene_id']}\t{r['exon_count']}\t"
+            f"{r['chromosome']}\t{r['chr_accver']}\t{r['chr_start']}\t"
+            f"{r['chr_stop']}\t{r['sequence']}\t{r['line']}\n"
         )
 
 for fh in family_files.values():
