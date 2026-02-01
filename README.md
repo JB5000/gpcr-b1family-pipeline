@@ -76,22 +76,56 @@ XP_029700367.1       -            794 FAMILYB1    ...  calcitonin receptor isofo
 ## 🚀 Installation & Usage
 
 ### Requirements
-- Python 3.7+
-- BioPython (for NCBI Entrez utilities)
+- **Python 3.7+** (Download: https://www.python.org/downloads/)
+- **Internet connection** (needed for NCBI queries)
+- **BioPython** (installed automatically - just one command!)
 
-### Setup
+### ⚡ Quick Start (Automatic Setup)
+
+#### Linux / macOS
+```bash
+git clone https://github.com/JB5000/gpcr-b1family-pipeline.git
+cd gpcr-b1family-pipeline
+chmod +x setup.sh
+./setup.sh
+```
+
+#### Windows
+```bash
+git clone https://github.com/JB5000/gpcr-b1family-pipeline.git
+cd gpcr-b1family-pipeline
+setup.bat
+```
+
+That's it! The scripts handle everything. ✅
+
+### 📚 Detailed Setup Instructions
+
+**Need more details or having issues?** 
+
+👉 See [SETUP_GUIDE.md](SETUP_GUIDE.md) for **complete step-by-step instructions** including:
+- Manual setup for any OS
+- Troubleshooting common problems
+- Understanding virtual environments
+- Verification checklists
+
+### Manual Setup (If you prefer)
 
 ```bash
-# Clone the repository
+# 1. Clone repository
 git clone https://github.com/JB5000/gpcr-b1family-pipeline.git
 cd gpcr-b1family-pipeline
 
-# Create virtual environment (recommended)
+# 2. Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install dependencies
-pip install biopython
+# 3. Activate virtual environment
+source venv/bin/activate              # Linux/macOS
+# OR on Windows:
+venv\Scripts\activate
+
+# 4. Install dependencies
+pip install -r requirements.txt
 ```
 
 ### Configuration
@@ -99,12 +133,14 @@ pip install biopython
 Edit the constants at the top of `master_pipeline_gpcr.py`:
 
 ```python
-Entrez.email = "your_email@example.com"  # REQUIRED: NCBI policy
-INPUT_FILE = "Galaxy14_PHMMER.txt"       # Your PHMMER output file
-OUTPUT_DIR = "FINAL_OUTPUT"              # Output directory
+Entrez.email = "your_email@example.com"  # ⚠️ REQUIRED! NCBI needs this
+INPUT_FILE = "Galaxy14_PHMMER.txt"       # Your PHMMER input file
+OUTPUT_DIR = "FINAL_OUTPUT"              # Output directory (created if needed)
 SLEEP = 0.34                             # Delay between NCBI requests (seconds)
 PROGRESS_STEP = 10                       # Progress bar update frequency (%)
 ```
+
+⚠️ **Important**: The `Entrez.email` field is **mandatory**. NCBI uses it to contact users if there are issues with their queries.
 
 ### Running the Pipeline
 
