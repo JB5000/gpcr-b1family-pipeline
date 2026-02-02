@@ -169,6 +169,38 @@ Now you can run the pipeline.
 
 ## 🚀 Installation & Usage
 
+## ✅ Easy to Install (Minimal Steps)
+
+**Linux/macOS (3 commands):**
+1. Clone:
+  - `git clone https://github.com/JB5000/gpcr-b1family-pipeline.git`
+2. Enter folder:
+  - `cd gpcr-b1family-pipeline`
+3. Run setup:
+  - `./setup.sh`
+
+**Windows (3 commands):**
+1. Clone:
+  - `git clone https://github.com/JB5000/gpcr-b1family-pipeline.git`
+2. Enter folder:
+  - `cd gpcr-b1family-pipeline`
+3. Run setup:
+  - `setup.bat`
+
+**Run the pipeline (after setup):**
+1. Edit `master_pipeline_gpcr.py` and set your email:
+  - `Entrez.email = "your_email@example.com"`
+2. Put your PHMMER file in the project folder (example: `Galaxy14_PHMMER_Takifugu_rubripes.txt`)
+3. Run:
+  - `python master_pipeline_gpcr.py`
+
+**Generate Excel + FASTA outputs:**
+  - `python generate_outputs.py`
+
+That’s it. The results will be in `FINAL_OUTPUT/` plus:
+- `GPCR_B1_All_Subfamilies.xlsx`
+- `GPCR_B1_Classified_Sequences.fasta`
+
 ### Requirements
 - **Python 3.7+** (Download: https://www.python.org/downloads/)
 - **Internet connection** (needed for NCBI queries)
