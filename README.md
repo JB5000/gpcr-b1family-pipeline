@@ -201,6 +201,26 @@ That’s it. The results will be in `FINAL_OUTPUT/` plus:
 - `GPCR_B1_All_Subfamilies.xlsx`
 - `GPCR_B1_Classified_Sequences.fasta`
 
+### ✅ Copy‑Paste Quick Start
+
+**Linux/macOS (all in one):**
+```bash
+git clone https://github.com/JB5000/gpcr-b1family-pipeline.git && \
+cd gpcr-b1family-pipeline && \
+./setup.sh && \
+python master_pipeline_gpcr.py && \
+python generate_outputs.py
+```
+
+**Windows (PowerShell):**
+```powershell
+git clone https://github.com/JB5000/gpcr-b1family-pipeline.git
+cd gpcr-b1family-pipeline
+setup.bat
+python master_pipeline_gpcr.py
+python generate_outputs.py
+```
+
 ### Requirements
 - **Python 3.7+** (Download: https://www.python.org/downloads/)
 - **Internet connection** (needed for NCBI queries)
