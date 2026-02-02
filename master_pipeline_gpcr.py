@@ -12,7 +12,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 # ================= CONFIG =================
 Entrez.email = "a71364@ualg.pt"
 
-INPUT_FILE = "Galaxy14_PHMMER.txt"
+INPUT_FILE = "Galaxy14_PHMMER_Takifugu_rubripes.txt"
 OUTPUT_DIR = "FINAL_OUTPUT"
 
 SLEEP = 0.34
@@ -21,13 +21,70 @@ PROGRESS_STEP = 10
 
 
 FAMILIES = {
-    "CALCR": ["calcitonin", "calcr"],
-    "CRHR": ["corticotropin", "crhr"],
-    "PTHR": ["parathyroid", "pthr"],
-    "GCGR": ["glucagon", "gcgr"],
-    "VIP_SCTR": [
-        "vasoactive intestinal", "vipr",
-        "secretin", "sctr"
+    "SCTR": ["secretin receptor", "secretin", "sctr"],
+    "GCGR": ["glucagon receptor", "gcgr"],
+    "GIPR": ["gastric inhibitory", "gipr", "gip receptor"],
+    "GLP1R": [
+        "glucagon-like peptide-1",
+        "glucagon like peptide 1",
+        "glucagon-like peptide 1 receptor",
+        "glp1r",
+        "glp-1 receptor",
+    ],
+    "GLP2R": [
+        "glucagon-like peptide-2",
+        "glucagon like peptide 2",
+        "glucagon-like peptide 2 receptor",
+        "glp2r",
+        "glp-2 receptor",
+    ],
+    "GHRHR": [
+        "growth hormone releasing hormone receptor",
+        "growth hormone releasing hormone receptor, like",
+        "growth hormone-releasing",
+        "ghrhr",
+    ],
+    "PTH1R": [
+        "parathyroid hormone receptor 1",
+        "parathyroid hormone/parathyroid hormone-related peptide receptor",
+        "parathyroid hormone-related peptide receptor",
+        "parathyroid hormone/parathyroid hormone-related peptide receptor-like",
+        "pth1r",
+    ],
+    "PTH2R": [
+        "parathyroid hormone receptor 2",
+        "parathyroid hormone 2 receptor",
+        "pth2r",
+    ],
+    "CRHR1": ["corticotropin-releasing", "crhr1", "corticotropin releasing hormone receptor 1"],
+    "CRHR2": ["corticotropin-releasing", "crhr2", "corticotropin releasing hormone receptor 2"],
+    "ADCYAP1R1": [
+        "pacap",
+        "adcyap1r1",
+        "pituitary adenylate cyclase-activating polypeptide type i receptor",
+        "pituitary adenylate cyclase-activating polypeptide type 1 receptor",
+        "adenylate cyclase activating polypeptide 1",
+        "pac1 receptor",
+        "pacap type i receptor",
+    ],
+    "VIPR1": [
+        "vasoactive intestinal peptide receptor 1",
+        "vasoactive intestinal polypeptide receptor 1",
+        "vasoactive intestinal polypeptide receptor",
+        "vipr1",
+    ],
+    "VIPR2": [
+        "vasoactive intestinal peptide receptor 2",
+        "vasoactive intestinal polypeptide receptor 2",
+        "vipr2",
+    ],
+    "CALCR": ["calcitonin receptor", "calcr"],
+    "CALCRL": [
+        "calcitonin receptor-like",
+        "calcitonin gene-related peptide type 1 receptor",
+        "calcitonin gene-related peptide type 1 receptor-like",
+        "calcitonin gene related peptide type 1 receptor",
+        "calcrl",
     ],
 }
 
@@ -79,11 +136,11 @@ def get_species_abbrev(description_line):
         return "NA"
 
 
-def format_sequence_with_header(acc, sequence, description_line):
+def format_sequence_with_header(acc, sequence, description_line, subfamily=""):
     abbrev = get_species_abbrev(description_line)
     if sequence == "NA":
-        return f">{abbrev} {acc} NA"
-    return f">{abbrev} {acc} {sequence}"
+        return f">{abbrev}_{acc}_{subfamily} NA"
+    return f">{abbrev}_{acc}_{subfamily} {sequence}"
 
 
 def get_gene_summary(gene_id):
@@ -204,11 +261,6 @@ for r in records:
     acc = r["accession"]
     r["gene_id"] = gene_cache.get(acc)
     r["sequence"] = seq_cache.get(acc)
-    r["sequence_formatted"] = format_sequence_with_header(
-        acc,
-        r["sequence"],
-        r["line"]
-    )
     info = gene_info_cache.get(r["gene_id"], {})
     r["exon_count"] = info.get("exon_count") or "NA"
     r["chromosome"] = info.get("chromosome") or "NA"
@@ -232,28 +284,39 @@ for gid, group in by_gene.items():
     filtered.append(group[0])
 
 # ---------- SPLIT OUTPUT ----------
-family_files = {}
-for fam in FAMILIES:
-    family_files[fam] = open(f"{OUTPUT_DIR}/{fam}.tsv", "w")
+# Create subfamily folders
+subfamily_files = {}
+for subfamily in FAMILIES.keys():
+    subfamily_dir = os.path.join(OUTPUT_DIR, subfamily)
+    os.makedirs(subfamily_dir, exist_ok=True)
+    subfamily_files[subfamily] = open(f"{subfamily_dir}/{subfamily}.tsv", "w")
 
-family_files["UNCLASSIFIED"] = open(
-    f"{OUTPUT_DIR}/UNCLASSIFIED.tsv", "w"
+unclassified_dir = os.path.join(OUTPUT_DIR, "UNCLASSIFIED")
+os.makedirs(unclassified_dir, exist_ok=True)
+subfamily_files["UNCLASSIFIED"] = open(
+    f"{unclassified_dir}/UNCLASSIFIED.tsv", "w"
 )
 
 header = (
     "accession\ttlen\tGeneID\texon_count\tchromosome\tchr_accver\t"
     "chr_start\tchr_stop\tprotein_sequence\tdescription\n"
 )
-for fh in family_files.values():
+for fh in subfamily_files.values():
     fh.write(header)
 
 for r in filtered:
     line_lower = r["line"].lower()
     assigned = False
 
-    for fam, keys in FAMILIES.items():
+    for subfamily, keys in FAMILIES.items():
         if any(k in line_lower for k in keys):
-            family_files[fam].write(
+            r["sequence_formatted"] = format_sequence_with_header(
+                r["accession"],
+                r["sequence"],
+                r["line"],
+                subfamily
+            )
+            subfamily_files[subfamily].write(
                 f"{r['accession']}\t{r['tlen']}\t{r['gene_id']}\t{r['exon_count']}\t"
                 f"{r['chromosome']}\t{r['chr_accver']}\t{r['chr_start']}\t"
                 f"{r['chr_stop']}\t{r['sequence_formatted']}\t{r['line']}\n"
@@ -262,13 +325,19 @@ for r in filtered:
             break
 
     if not assigned:
-        family_files["UNCLASSIFIED"].write(
+        r["sequence_formatted"] = format_sequence_with_header(
+            r["accession"],
+            r["sequence"],
+            r["line"],
+            "UNKNOWN"
+        )
+        subfamily_files["UNCLASSIFIED"].write(
             f"{r['accession']}\t{r['tlen']}\t{r['gene_id']}\t{r['exon_count']}\t"
             f"{r['chromosome']}\t{r['chr_accver']}\t{r['chr_start']}\t"
             f"{r['chr_stop']}\t{r['sequence_formatted']}\t{r['line']}\n"
         )
 
-for fh in family_files.values():
+for fh in subfamily_files.values():
     fh.close()
 
 print("\nPIPELINE COMPLETE ✅")

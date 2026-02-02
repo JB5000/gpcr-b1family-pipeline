@@ -31,13 +31,23 @@ This pipeline processes HMM search results (PHMMER output) to:
 - **Protein Sequences**: Downloads full-length amino acid sequences in FASTA format
 
 ### 3. **Family Classification**
-Automatically categorizes sequences into GPCR B1 receptor subfamilies:
-- **CALCR** - Calcitonin Receptor family
-- **CRHR** - Corticotropin-Releasing Hormone Receptor family
-- **PTHR** - Parathyroid Hormone Receptor family
-- **GCGR** - Glucagon Receptor family
-- **VIP_SCTR** - Vasoactive Intestinal Peptide & Secretin Receptor families
-- **UNCLASSIFIED** - Sequences that don't match any family keywords
+Automatically categorizes sequences into 15 GPCR B1 receptor subfamilies, each in its own folder:
+- **SCTR** - Secretin receptor
+- **GCGR** - Glucagon receptor
+- **GIPR** - Gastric inhibitory peptide receptor
+- **GLP1R** - Glucagon-like peptide-1 receptor
+- **GLP2R** - Glucagon-like peptide-2 receptor
+- **GHRHR** - Growth hormone-releasing hormone receptor
+- **PTH1R** - Parathyroid hormone receptor 1
+- **PTH2R** - Parathyroid hormone receptor 2
+- **CRHR1** - Corticotropin-releasing hormone receptor 1
+- **CRHR2** - Corticotropin-releasing hormone receptor 2
+- **ADCYAP1R1** - PAC1 receptor (PACAP type I)
+- **VIPR1** - Vasoactive intestinal peptide receptor 1
+- **VIPR2** - Vasoactive intestinal peptide receptor 2
+- **CALCR** - Calcitonin receptor
+- **CALCRL** - Calcitonin receptor-like receptor
+- **UNCLASSIFIED** - Sequences that don't match any subfamily keywords
 
 ### 4. **Output Generation**
 Produces tab-separated value (TSV) files with the following columns:
@@ -78,7 +88,7 @@ XP_029700367.1       -            794 FAMILYB1    ...  calcitonin receptor isofo
 Each output sequence is written in a **single field** with a custom header and a space before the sequence:
 
 ```
->Tru NP_001098689.1 MKSAGYSCILWLLLMMVTDTESLSEPSLSPGQ...
+>Tru_NP_001098689.1_CALCR MKSAGYSCILWLLLMMVTDTESLSEPSLSPGQ...
 ```
 
 **How the header is built (automatic):**
@@ -87,11 +97,14 @@ Each output sequence is written in a **single field** with a custom header and a
   - Example organism: `[Takifugu rubripes]`
   - Abbreviation rule: **first letter of genus (uppercase)** + **first two letters of species (lowercase)**
   - Result: `Tru`
+- Then an underscore `_`
 - Then the **accession number**
+- Then an underscore `_`
+- Then the **subfamily symbol** (e.g., CALCR, CRHR1, GLP1R)
 - Then a **single space**
 - Then the **protein sequence**
 
-If the organism name is missing or invalid, the abbreviation becomes `NA`.
+If the organism name is missing or invalid, the abbreviation becomes `NA`. Unknown subfamilies are marked as `UNKNOWN`.
 
 ---
 
@@ -233,13 +246,10 @@ python master_pipeline_gpcr.py
 
 The pipeline will:
 1. **Progress Indicator**: Show real-time progress for protein fetching and gene annotation
-2. **Output Files**: Create TSV files in `FINAL_OUTPUT/`:
-   - `CALCR.tsv`
-   - `CRHR.tsv`
-   - `PTHR.tsv`
-   - `GCGR.tsv`
-   - `VIP_SCTR.tsv`
-   - `UNCLASSIFIED.tsv`
+2. **Output Structure**: Create organized folder structure in `FINAL_OUTPUT/`:
+   - One folder per subfamily (SCTR, GCGR, GIPR, GLP1R, GLP2R, GHRHR, PTH1R, PTH2R, CRHR1, CRHR2, ADCYAP1R1, VIPR1, VIPR2, CALCR, CALCRL)
+   - Each folder contains a TSV file with the subfamily name
+   - Unclassified sequences in `UNCLASSIFIED/UNCLASSIFIED.tsv`
 
 ```
 Total unique accessions: 240
@@ -287,25 +297,25 @@ Results written to: FINAL_OUTPUT/
 
 ## 🛠️ Customization
 
-### Adding New Families
+### Adding New Subfamilies or Refining Keywords
 
 Edit the `FAMILIES` dictionary in `master_pipeline_gpcr.py`:
 
 ```python
 FAMILIES = {
-    "CALCR": ["calcitonin", "calcr"],
-    "CRHR": ["corticotropin", "crhr"],
-    "PTHR": ["parathyroid", "pthr"],
-    "GCGR": ["glucagon", "gcgr"],
-    "VIP_SCTR": [
-        "vasoactive intestinal", "vipr",
-        "secretin", "sctr"
+    "SCTR": ["secretin receptor", "secretin", "sctr"],
+    "GCGR": ["glucagon receptor", "gcgr"],
+    "GLP1R": [
+        "glucagon-like peptide-1",
+        "glucagon like peptide 1",
+        "glp1r",
     ],
-    "NEW_FAMILY": ["keyword1", "keyword2"],  # Add here
+    # ... add more as needed
+    "NEW_SUBFAMILY": ["keyword1", "keyword2", "alternative_name"],  # Add here
 }
 ```
 
-The pipeline searches the description field (case-insensitive) for these keywords.
+The pipeline searches the description field (case-insensitive) for any matching keyword. Add more keyword variants to improve classification accuracy.
 
 ### Adjusting NCBI Query Rates
 
@@ -344,16 +354,47 @@ SLEEP = 0.1   # Aggressive rate: ~10 requests/second (use with caution)
 
 ```
 gpcr-b1family-pipeline/
-├── master_pipeline_gpcr.py      # Main pipeline script
-├── Galaxy14_PHMMER.txt          # Example input file
-├── README.md                     # This file
-├── FINAL_OUTPUT/                # Output directory (created on first run)
-│   ├── CALCR.tsv
-│   ├── CRHR.tsv
-│   ├── PTHR.tsv
-│   ├── GCGR.tsv
-│   ├── VIP_SCTR.tsv
-│   └── UNCLASSIFIED.tsv
+├── master_pipeline_gpcr.py         # Main pipeline script
+├── Galaxy14_PHMMER.txt             # Example input file
+├── Galaxy23_PHMMER.txt             # Example input file
+├── README.md                        # This file
+├── requirements.txt                 # Python dependencies
+├── setup.sh                         # Linux/macOS setup script
+├── setup.bat                        # Windows setup script
+├── SETUP_GUIDE.md                   # Detailed setup instructions
+└── FINAL_OUTPUT/                    # Output directory (created on first run)
+    ├── SCTR/
+    │   └── SCTR.tsv
+    ├── GCGR/
+    │   └── GCGR.tsv
+    ├── GIPR/
+    │   └── GIPR.tsv
+    ├── GLP1R/
+    │   └── GLP1R.tsv
+    ├── GLP2R/
+    │   └── GLP2R.tsv
+    ├── GHRHR/
+    │   └── GHRHR.tsv
+    ├── PTH1R/
+    │   └── PTH1R.tsv
+    ├── PTH2R/
+    │   └── PTH2R.tsv
+    ├── CRHR1/
+    │   └── CRHR1.tsv
+    ├── CRHR2/
+    │   └── CRHR2.tsv
+    ├── ADCYAP1R1/
+    │   └── ADCYAP1R1.tsv
+    ├── VIPR1/
+    │   └── VIPR1.tsv
+    ├── VIPR2/
+    │   └── VIPR2.tsv
+    ├── CALCR/
+    │   └── CALCR.tsv
+    ├── CALCRL/
+    │   └── CALCRL.tsv
+    └── UNCLASSIFIED/
+        └── UNCLASSIFIED.tsv
 ```
 
 ## 🔍 Troubleshooting
@@ -417,5 +458,6 @@ For issues, questions, or suggestions:
 ---
 
 **Last Updated**: February 2026  
-**Version**: 1.0  
-**Status**: Production Ready ✅
+**Version**: 2.0  
+**Status**: Production Ready ✅  
+**Major Update**: Now includes 15 distinct GPCR B1 subfamily categories with organized folder structure and improved FASTA header formatting.
