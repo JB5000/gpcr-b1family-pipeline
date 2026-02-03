@@ -3,14 +3,14 @@
 Generate Excel workbook with multiple sheets and combined FASTA file
 """
 import os
+import re
+import argparse
 import pandas as pd
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils.dataframe import dataframe_to_rows
 
-OUTPUT_DIR = "FINAL_OUTPUT"
-EXCEL_OUTPUT = "GPCR_B1_All_Subfamilies.xlsx"
-FASTA_OUTPUT = "GPCR_B1_Classified_Sequences.fasta"
+DEFAULT_OUTPUT_DIR = "FINAL_OUTPUT"
 
 # Define subfamilies in order
 SUBFAMILIES = [
@@ -18,6 +18,49 @@ SUBFAMILIES = [
     "PTH1R", "PTH2R", "CRHR1", "CRHR2", "ADCYAP1R1",
     "VIPR1", "VIPR2", "CALCR", "CALCRL", "UNCLASSIFIED"
 ]
+
+def sanitize_name(value):
+    safe = re.sub(r"[^A-Za-z0-9]+", "_", value).strip("_")
+    return safe or "output"
+
+
+def resolve_output_dir(input_file):
+    base = os.path.splitext(os.path.basename(input_file))[0]
+    safe_base = sanitize_name(base)
+    return f"FINAL_OUTPUT_{safe_base}"
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Generate Excel + FASTA outputs for GPCR B1 pipeline"
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
+        dest="input_file",
+        default=None,
+        help="PHMMER input file used in the pipeline",
+    )
+    parser.add_argument(
+        "-o",
+        "--output-dir",
+        dest="output_dir",
+        default=None,
+        help="Pipeline output directory (overrides --input)",
+    )
+    return parser.parse_args()
+
+
+args = parse_args()
+if args.output_dir:
+    OUTPUT_DIR = args.output_dir
+elif args.input_file:
+    OUTPUT_DIR = resolve_output_dir(args.input_file)
+else:
+    OUTPUT_DIR = DEFAULT_OUTPUT_DIR
+
+EXCEL_OUTPUT = os.path.join(OUTPUT_DIR, "GPCR_B1_All_Subfamilies.xlsx")
+FASTA_OUTPUT = os.path.join(OUTPUT_DIR, "GPCR_B1_Classified_Sequences.fasta")
 
 print("🔄 Starting output generation...")
 print(f"📊 Creating Excel workbook: {EXCEL_OUTPUT}")
