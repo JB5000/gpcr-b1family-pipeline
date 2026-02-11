@@ -148,5 +148,5 @@ This project demonstrates practical skills expected in remote bioinformatics rol
 
 ## Author
 
-**Joao Barros**  
+**Joao Bentes**  
 GitHub: [JB5000](https://github.com/JB5000)
