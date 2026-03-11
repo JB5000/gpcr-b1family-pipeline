@@ -1,21 +1,44 @@
 #!/usr/bin/env python3
+"""
+pipeline_gpcr_staged.py
+-----------------------
+Stagged GPCR B1-family pipeline with four independent entry points:
+
+  retrieve    -- Query NCBI and save a JSON cache of accession metadata.
+  classify    -- Read the cache and produce per-species Excel workbooks.
+  tree        -- Build a MAFFT alignment + FastTree phylogeny and render PDFs.
+  from-cache  -- Run classify + tree starting from an existing cache.
+  full        -- Run the entire pipeline end-to-end.
+
+Usage examples::
+
+    python pipeline_gpcr_staged.py retrieve --cache-out /tmp/cache.json
+    python pipeline_gpcr_staged.py classify --cache /tmp/cache.json
+    python pipeline_gpcr_staged.py full --cache-out /tmp/cache.json
+"""
+
 import argparse
 import os
 import subprocess
 import sys
 from datetime import datetime
 
+__version__ = "1.1.0"
 
-def script_path(name):
+
+def script_path(name: str) -> str:
+    """Return absolute path to a script co-located with this file."""
     return os.path.join(os.path.dirname(__file__), name)
 
 
-def run_cmd(cmd, env=None):
+def run_cmd(cmd: list[str], env: dict | None = None) -> None:
+    """Print and execute a shell command, raising on non-zero exit."""
     print("\n$", " ".join(cmd))
     subprocess.run(cmd, check=True, env=env)
 
 
-def default_run_output_root(workspace_root):
+def default_run_output_root(workspace_root: str) -> str:
+    """Return a timestamped output directory path under *workspace_root*/outputs."""
     run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     return os.path.join(workspace_root, "outputs", f"run_{run_id}")
 
@@ -166,9 +189,13 @@ def run_tree(args):
     ], env=render_env)
 
 
-def main():
+def main() -> None:
+    """Parse CLI arguments and dispatch to the appropriate pipeline stage."""
     parser = argparse.ArgumentParser(
         description="Staged GPCR pipeline: retrieval -> classification/excel -> tree"
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
